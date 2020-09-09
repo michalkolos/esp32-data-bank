@@ -8,7 +8,7 @@
 
 RTC_DATA_ATTR uint8_t bootCount = 0;
 
-const int MEMORY_SIZE = 10;
+const int MEMORY_SIZE = 20;
 
 RTC_DATA_ATTR byte memoryStart[MEMORY_SIZE];
 
@@ -23,50 +23,53 @@ void setup() {
 
 	print_wakeup_reason();
 
-	DataBank dataBank(memoryStart, sizeof(uint8_t), MEMORY_SIZE);
+	DataBank<uint8_t> dataBank(memoryStart, MEMORY_SIZE);
 
 	// Serial.println(storage.dump());
 
-	if(bootCount == 1){
-		
-		dataBank.init();
+	uint8_t counter;
 
+	if(bootCount == 1){
+		dataBank.init();
+		dataBank.push(bootCount);
+	}else{
+
+		for(uint8_t i = 0; i <= bootCount; i++){
+			dataBank.push(i);
+		}
+	
+		// dataBank.push(bootCount);
+	
+		while(dataBank.use() > 0){
+			Serial.print("Queue size");
+			uint16_t use =  dataBank.pop(&counter, true);
+			Serial.print(use);
+			Serial.print(" Pulled data: ");
+			Serial.println(counter);
+		}
+		// Serial.println(dataBank.toString());
+
+		
 	}
 
 	// char val [] = "aaa";
 
-	uint16_t modedBootCount = bootCount + 400;
+	// uint16_t modedBootCount = bootCount + 400;
 
-	dataBank.push(&bootCount);
+	// dataBank.push(bootCount);
 
 
-	Serial.println(dataBank.toString());
+	
 
 
 
 	esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * SECONDS_FACTOR);
 	Serial.println("[Boot] Setup ESP32 to sleep for every " + String(TIME_TO_SLEEP) + " Seconds\n");
 
-
-
-
-	
-
-	
-
-	
-
-
-
-
 	Serial.println("[Boot] Going to sleep now \n\n");
   	delay(500);
   	Serial.flush(); 
   	esp_deep_sleep_start();
-	
-
-
-
 }
 
 void loop() {
