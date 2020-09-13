@@ -76,15 +76,9 @@ private:
 
 public:
 
-    /**
-     * @brief Construct a new DataBank object
-     * 
-     * @param startAddress Pointer to the beginning of the memory for the buffer.
-     * @param memoryLen Length of the memory for the buffer
-     */
-    DataBank(void* startAddress, size_t memoryLen){
+    DataBank(void* startAddress, size_t memoryLen, size_t dataLen){
         
-        dataLen = sizeof(T);
+        this->dataLen = dataLen;
         this->memoryLen =  memoryLen - sizeof(BufferState);
         if(this->memoryLen < 0) { this->memoryLen = 0; }
         memorySize = (uint16_t)(this->memoryLen / dataLen);
@@ -93,6 +87,36 @@ public:
 
     return;
     }
+    
+    /**
+     * @brief Construct a new DataBank object
+     * 
+     * @param startAddress Pointer to the beginning of the memory for the buffer.
+     * @param memoryLen Length of the memory for the buffer
+     */
+    DataBank(void* startAddress, size_t memoryLen){
+        DataBank(startAddress, memoryLen, sizeof(T));
+    }
+
+
+    
+    // /**
+    //  * @brief Construct a new DataBank object
+    //  * 
+    //  * @param startAddress Pointer to the beginning of the memory for the buffer.
+    //  * @param memoryLen Length of the memory for the buffer
+    //  */
+    // DataBank(void* startAddress, size_t memoryLen){
+        
+    //     dataLen = sizeof(T);
+    //     this->memoryLen =  memoryLen - sizeof(BufferState);
+    //     if(this->memoryLen < 0) { this->memoryLen = 0; }
+    //     memorySize = (uint16_t)(this->memoryLen / dataLen);
+    //     bufferState = (BufferState*)startAddress;
+    //     this->startAddress = (uint8_t*)startAddress + sizeof(BufferState);
+
+    // return;
+    // }
     
     
     ~DataBank(){
@@ -180,6 +204,26 @@ public:
         return use();
     }
 
+    uint16_t pop(T** outData, bool move){
+        if(bufferState->empty){ 
+            return 0;
+        }
+
+        *outData = resolveMemOffset(bufferState->readIndex);
+
+        outData
+
+        if(move){
+            advanceIndex(&(bufferState->readIndex));
+
+            if(bufferState->readIndex == bufferState->writeIndex){
+                bufferState->empty = true;
+            }
+        }
+
+        return use();
+    }
+
 
     
     String toString(){
@@ -231,7 +275,29 @@ public:
 
         return outString;
     }
+
+    
+    
+    T* newEntry(){
+        if(memorySize <= 0){ return; }
+
+        T* dataPointer = resolveMemOffset(bufferState->writeIndex);
+
+        memset((void*)dataPointer, 0, dataLen);
+        
+
+        if(!bufferState->empty && bufferState->writeIndex == bufferState->readIndex){
+            advanceIndex(&(bufferState->readIndex));
+        }
+
+        advanceIndex(&(bufferState->writeIndex));
+        bufferState->empty = false;
+
+    return dataPointer;
+    }
 }; 
+
+
  
 
 
