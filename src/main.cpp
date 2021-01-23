@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "DataBank.h"
+#include "DataStruct.h"
 
 
 #define SECONDS_FACTOR 1000000
@@ -8,7 +9,7 @@
 
 RTC_DATA_ATTR uint8_t bootCount = 0;
 
-const int MEMORY_SIZE = 20;
+const int MEMORY_SIZE = 200;
 
 RTC_DATA_ATTR byte memoryStart[MEMORY_SIZE];
 
@@ -23,29 +24,45 @@ void setup() {
 
 	print_wakeup_reason();
 
-	DataBank<uint8_t> dataBank(memoryStart, MEMORY_SIZE);
+	DataBank<DataStruct> dataBank(memoryStart, MEMORY_SIZE);
 
 	// Serial.println(storage.dump());
 
 	uint8_t counter;
+	
+	DataStruct dataStruct;
+	dataStruct.firstField = bootCount;
+	dataStruct.secondField = bootCount + 1;
+	dataStruct.thirdField = bootCount + 2;
 
 	if(bootCount == 1){
+		
+		dataStruct.firstField = bootCount;
+		dataStruct.secondField = bootCount + 1;
+		dataStruct.thirdField = bootCount + 2;
+
 		dataBank.init();
-		dataBank.push(bootCount);
+		dataBank.push(dataStruct);
 	}else{
 
 		for(uint8_t i = 0; i <= bootCount; i++){
-			dataBank.push(i);
+			dataStruct.firstField = i;
+			dataStruct.secondField = i + 1;
+			dataStruct.thirdField = i + 2;
+
+			dataBank.push(dataStruct);
 		}
 	
 		// dataBank.push(bootCount);
+
+		DataStruct retrievedDataStruct;
 	
 		while(dataBank.use() > 0){
 			Serial.print("Queue size");
-			uint16_t use =  dataBank.pop(&counter, true);
+			uint16_t use =  dataBank.pop(&retrievedDataStruct, true);
 			Serial.print(use);
 			Serial.print(" Pulled data: ");
-			Serial.println(counter);
+			retrievedDataStruct.print();
 		}
 		// Serial.println(dataBank.toString());
 
