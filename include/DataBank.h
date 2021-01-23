@@ -211,8 +211,6 @@ public:
 
         *outData = resolveMemOffset(bufferState->readIndex);
 
-        outData
-
         if(move){
             advanceIndex(&(bufferState->readIndex));
 

@@ -28,7 +28,6 @@ void setup() {
 
 	// Serial.println(storage.dump());
 
-	uint8_t counter;
 	
 	DataStruct dataStruct;
 	dataStruct.firstField = bootCount;
