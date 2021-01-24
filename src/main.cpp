@@ -9,12 +9,15 @@
 
 RTC_DATA_ATTR uint8_t bootCount = 0;
 
-const int MEMORY_SIZE = 200;
+const int MEMORY_SIZE = 2000;
 
 RTC_DATA_ATTR byte memoryStart[MEMORY_SIZE];
 
 
 void print_wakeup_reason();
+void structTest();
+void primitiveWobbleTest();
+void structWobbleTest();
 
 
 void setup() {
@@ -24,49 +27,6 @@ void setup() {
 
 	print_wakeup_reason();
 
-	DataBank<DataStruct> dataBank(memoryStart, MEMORY_SIZE);
-
-	// Serial.println(storage.dump());
-
-	
-	DataStruct dataStruct;
-	dataStruct.firstField = bootCount;
-	dataStruct.secondField = bootCount + 1;
-	dataStruct.thirdField = bootCount + 2;
-
-	if(bootCount == 1){
-		
-		dataStruct.firstField = bootCount;
-		dataStruct.secondField = bootCount + 1;
-		dataStruct.thirdField = bootCount + 2;
-
-		dataBank.init();
-		dataBank.push(dataStruct);
-	}else{
-
-		for(uint8_t i = 0; i <= bootCount; i++){
-			dataStruct.firstField = i;
-			dataStruct.secondField = i + 1;
-			dataStruct.thirdField = i + 2;
-
-			dataBank.push(dataStruct);
-		}
-	
-		// dataBank.push(bootCount);
-
-		DataStruct retrievedDataStruct;
-	
-		while(dataBank.use() > 0){
-			Serial.print("Queue size");
-			uint16_t use =  dataBank.pop(&retrievedDataStruct, true);
-			Serial.print(use);
-			Serial.print(" Pulled data: ");
-			retrievedDataStruct.print();
-		}
-		// Serial.println(dataBank.toString());
-
-		
-	}
 
 	// char val [] = "aaa";
 
@@ -75,7 +35,13 @@ void setup() {
 	// dataBank.push(bootCount);
 
 
-	
+	// primitiveWobbleTest();
+
+	structWobbleTest();
+
+	// structTest();
+
+
 
 
 
@@ -120,4 +86,170 @@ void print_wakeup_reason(){
 			Serial.printf("[Boot] Wakeup was not caused by deep sleep: %d\n",wakeup_reason); 
 			break;
   	}
+}
+
+
+
+void structTest() {
+	
+	DataBank<DataStruct> dataBank(memoryStart, MEMORY_SIZE);
+
+	// Serial.println(storage.dump());
+
+	
+	DataStruct dataStruct;
+	dataStruct.firstField = bootCount;
+	dataStruct.secondField = bootCount + 1;
+	dataStruct.thirdField = bootCount + 2;
+
+	if(bootCount == 1){
+		
+		dataStruct.firstField = bootCount;
+		dataStruct.secondField = bootCount + 1;
+		dataStruct.thirdField = bootCount + 2;
+
+		dataBank.init();
+		dataBank.push(dataStruct);
+	}else{
+
+		for(uint8_t i = 0; i <= bootCount; i++){
+			dataStruct.firstField = i;
+			dataStruct.secondField = i + 1;
+			dataStruct.thirdField = i + 2;
+
+			dataBank.push(dataStruct);
+		}
+	
+		// dataBank.push(bootCount);
+
+		DataStruct retrievedDataStruct;
+	
+		while(dataBank.use() > 0){
+			Serial.print("Queue size");
+			uint16_t use =  dataBank.pop(&retrievedDataStruct, true);
+			Serial.print(use);
+			Serial.print(" Pulled data: ");
+			retrievedDataStruct.print();
+		}
+		// Serial.println(dataBank.toString());
+
+		
+	}
+}
+
+
+void primitiveWobbleTest() {
+
+	int intBootCount = (int) bootCount;
+
+	DataBank<int> dataBank(memoryStart, MEMORY_SIZE);
+
+
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+
+
+	Serial.print("Retrieved: ");
+	int retrievedData;
+	while(dataBank.use() > 0) {
+		dataBank.pop(&retrievedData, true);
+		Serial.print(String(retrievedData) + " ");
+	}
+	Serial.print("\n");
+
+	intBootCount = intBootCount * 100;
+
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+	dataBank.push(intBootCount);
+
+
+	Serial.print("Retrieved: ");
+	retrievedData;
+	while(dataBank.use() > 0) {
+		dataBank.pop(&retrievedData, true);
+		Serial.print(String(retrievedData) + " ");
+	}
+	Serial.print("\n");
+}
+
+
+void structWobbleTest() {
+
+	DataBank<DataStruct> dataBank(memoryStart, MEMORY_SIZE);
+
+	DataStruct dataStruct;
+	dataStruct.firstField = bootCount;
+	dataStruct.secondField = bootCount + 1;
+	dataStruct.thirdField = bootCount + 2;
+
+
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+
+
+	Serial.print("Retrieved: ");
+	DataStruct retrievedData;
+	while(dataBank.use() > 0) {
+		dataBank.pop(&retrievedData, true);
+		retrievedData.print();
+	}
+	Serial.print("\n");
+
+	dataStruct.firstField = dataStruct.firstField * 100;
+	dataStruct.secondField = dataStruct.secondField * 100;
+	dataStruct.thirdField = dataStruct.thirdField * 100;
+
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+	dataBank.push(dataStruct);
+
+
+	Serial.print("Retrieved: ");
+	retrievedData;
+	while(dataBank.use() > 0) {
+		dataBank.pop(&retrievedData, true);
+		retrievedData.print();
+	}
+	Serial.print("\n");
+
+
 }
