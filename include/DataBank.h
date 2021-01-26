@@ -128,6 +128,10 @@ public:
         return count;
     }
 
+    uint16_t totalSpace() {
+        return memorySize;
+    }
+
     /**
      * @brief Puts a copy of given object into the buffer.
      * 
