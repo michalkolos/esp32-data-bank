@@ -181,6 +181,17 @@ public:
     }
 
 
+    bool get(T* outData, int index) {
+        if(bufferState->empty || use() <= index) { return false; }
+        
+        uint16_t queryIndex  = (bufferState->readIndex + index) % memorySize;
+
+        memcpy(outData, resolveMemOffset(queryIndex), dataLen);
+
+        return true;
+    }
+
+
     
     String toString(){
         String outString = "MemLen: ";
