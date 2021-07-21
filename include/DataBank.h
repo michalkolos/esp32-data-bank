@@ -13,241 +13,138 @@
 #ifndef DATA_BANK_H
 #define DATA_BANK_H
 
-#include <Arduino.h>
 
-
-template<typename T>
-class DataBank
-{
-private:
-
-    /**
-     * Buffer state data placed at the beginning of the reserved memory.
-     */
-    struct BufferState
-    {
-        uint16_t readIndex;
-        uint16_t writeIndex;
-        bool empty;    
-    };
-
-    
-    /// Pointer to the beginning of reserved memory.
-    void* startAddress;
-
-    /// Bytesize of a single storred object .
-    size_t dataLen;
-    
-    /// Bytesize of the total allocated memory.
-    size_t memoryLen; 
-
-    /// Maximum number of objects allowed on the buffer.
-    uint16_t memorySize;
-
-    /// Pointer to the object storred in the allocated memory that holds current
-    /// state of the buffer
-    BufferState* bufferState;
-
-    /**
-     * @brief Moves a given index one position forwards. At the end returns it
-     * to the beginning of the range.
-     * 
-     * @param startingPos Pointer to the index.
-     */
-    void advanceIndex(uint16_t* startingPos){
-        *startingPos = ++(*(uint8_t*)startingPos) % memorySize ;
-
-        return;
-    }
-
-    /**
-     * @brief Converts index position to memory address it represents.
-     * 
-     * @param pos Index.
-     * @return void* Data address in buffer memory.
-     */
-    void* resolveMemOffset(uint16_t pos){
-        return (uint8_t*)startAddress + (dataLen * pos);
-    }
-
-
-    
-
-
+/**
+ * Circular buffer implementation that uses preallocated continuous range of
+ * memory passed to it in the constructor.
+ * @tparam T Type of elements stored in the buffer
+ */
+template<class T>
+class DataBank {
+    using sizeType = size_t;
+    using indexType = int;
 public:
 
     /**
-     * @brief Construct a new DataBank object
-     * 
-     * @param startAddress Pointer to the beginning of the memory for the buffer.
-     * @param memoryLen Length of the memory for the buffer
+     * @param bufferMemoryStart Pointer to the beginning of the continuous memory
+     * range allocated for the buffer.
+     * @param bufferMemoryLen Length of the allocated memory in bytes.
      */
-    DataBank(void* startAddress, size_t memoryLen){
-        
-        dataLen = sizeof(T);
-        this->memoryLen =  memoryLen - sizeof(BufferState);
-        if(this->memoryLen < 0) { this->memoryLen = 0; }
-        memorySize = (uint16_t)(this->memoryLen / dataLen);
-        bufferState = (BufferState*)startAddress;
-        this->startAddress = (uint8_t*)startAddress + sizeof(BufferState);
+    DataBank(const void *bufferMemoryStart, const sizeType bufferMemoryLen) {
+        head = (indexType*)bufferMemoryStart;
+        tail = (indexType*)((char*)bufferMemoryStart + sizeof(indexType));
+        dataMemory = (T*)((char*)bufferMemoryStart + 2 * sizeof(indexType));
 
-    return;
-    }
-    
-    
-    ~DataBank(){
-    }
-
-
-    /**
-     * @brief Clears the memory and resets all indexes.
-     * 
-     */
-    void init(){
-        memset((uint8_t*)startAddress - sizeof(BufferState), 0, memoryLen);
-        this->bufferState->empty = true;    
-    }
-
-
-    /**
-     * @brief Returns a number of storrend objects in the buffer.
-     * 
-     * @return uint16_t Number of objects.
-     */
-    uint16_t use(){
-        if(bufferState->empty){ return 0; }
-
-        uint16_t count = 0;
-        uint16_t localReadIndex = bufferState->readIndex;
-
-        do{ 
-            count++; 
-            advanceIndex(&localReadIndex);
-        }while(bufferState->writeIndex != localReadIndex);
-
-        return count;
-    }
-
-    uint16_t totalSpace() {
-        return memorySize;
+        arraySize = calculateArraySize(bufferMemoryLen - 2 * sizeof(indexType));
     }
 
     /**
-     * @brief Puts a copy of given object into the buffer.
-     * 
-     * @param inData Reference to the source object 
+     * Resets the buffer. Required before first use.
      */
-    void push(T& inData){
-         if(memorySize <= 0){ return; }
-
-        memcpy(resolveMemOffset(bufferState->writeIndex), &inData, dataLen);
-        
-
-        if(!bufferState->empty && bufferState->writeIndex == bufferState->readIndex){
-            advanceIndex(&(bufferState->readIndex));
-        }
-
-        advanceIndex(&(bufferState->writeIndex));
-        bufferState->empty = false;
-
-    return;
+    void init() {
+        *head = 0;
+        *tail = 0;
     }
-
-
 
     /**
-     * @brief Gets oldest element storred in the buffer. 
-     * 
-     * @param outData Address of an object that will be overwritten by data 
-     * from the buffer.
-     * @param move Flag that decides whether returning object is moved or copied 
-     * form the buffer.
-     * @return uint16_t Number of objects left in the buffer.
+     * Puts new element at the end of the buffer. The element is copied in the
+     * process. If the buffer is full, last element will be overwritten.
+     * @param newElement New element to be put on the buffer.
      */
-    uint16_t pop(T* outData, bool move){
-                
-        if(bufferState->empty){ 
-            // outData = nullptr; 
-            return 0;
+    void push(const T newElement) {
+
+        *(dataMemory + *head) = newElement;
+
+        advanceIndex(head);
+        if(*head == *tail) {
+            advanceIndex(tail);
         }
-
-        memcpy(outData, resolveMemOffset(bufferState->readIndex), dataLen);
-
-        if(move){
-            advanceIndex(&(bufferState->readIndex));
-
-            if(bufferState->readIndex == bufferState->writeIndex){
-                bufferState->empty = true;
-            }
-        }
-
-        return use();
     }
 
-
-    bool get(T* outData, int index) {
-        if(bufferState->empty || use() <= index) { return false; }
-        
-        uint16_t queryIndex  = (bufferState->readIndex + index) % memorySize;
-
-        memcpy(outData, resolveMemOffset(queryIndex), dataLen);
-
-        return true;
+    /**
+     * Retrieves the last element stored in the buffer. If the buffer is empty
+     * it will keep returning the last available element.
+     * @return Oldest element in the buffer.
+     */
+    T popLast() {
+        T result = *(dataMemory + *tail);
+        if(head != tail) {
+            advanceIndex(tail);
+        }
+        return result;
     }
 
-
-    
-    String toString(){
-        String outString = "MemLen: ";
-        outString += memoryLen;
-        outString += " / DataLen: ";
-        outString += (int)dataLen;
-        outString += " / MemSize: ";
-        outString += memorySize;
-        outString += "  // RIndex: ";
-        outString += bufferState->readIndex;
-        outString += " / WIndex: ";
-        outString += bufferState->writeIndex;
-        outString += " / Use: ";
-        outString += use();
-        outString += " / StateStruct size: ";
-        outString += sizeof(BufferState);
-        outString += "\n";
-
-        outString += "Real memory composition: \n";
-
-        for(int i = 0; i < memorySize; i++){
-            void* memPos = resolveMemOffset(i);
-            for(int j = 0; j < dataLen; j++){
-                outString += *((uint8_t*)memPos + j); 
-            }
-            outString += " ";
+    /**
+     * Retrieves the first element stored in the buffer. If the buffer is empty
+     * it will keep returning the last available element.
+     * @return Most recent element in the buffer.
+     */
+    T popRecent() {
+        if(*head != *tail) {
+            stepBackIndex(head);
         }
-
-        outString += "\nAbstracted memory composition: \n";
-
-        uint16_t localReadIndex = bufferState->readIndex;
-
-        if(!bufferState->empty){
-            do{
-                void* memPos = resolveMemOffset(localReadIndex);
-                
-                for(int j = 0; j < dataLen; j++){
-                    outString += *((uint8_t*)memPos + j); 
-                }
-                outString += " ";
-
-                advanceIndex(&localReadIndex);
-            
-            }while(localReadIndex != bufferState->writeIndex);
-        }
-
-        outString += "\n";
-
-        return outString;
+        return *(dataMemory + *head);
     }
-}; 
- 
+
+    /**
+     * Retrieves the last element stored in the buffer. But does not remove it
+     * from the buffer. If the buffer is empty it will keep returning the last
+     * available element.
+     * @return Oldest element in the buffer.
+     */
+    T& peakLast() {
+        return *(dataMemory + *tail);
+    }
+
+    /**
+     * Provides random  access to the buffer. If provided index number exceeds
+     * the buffer size it will wrap around to the beginning.
+     * @param index Position of the element in the buffer.
+     * @return Element retrieved from the buffer.
+     */
+    T& get(indexType index) {
+        randomAccessIndex(&index);
+        return *(dataMemory + index);
+    }
+
+    /**
+     * Provides the number of elements stored in the buffer.
+     * @return  Number of elements in the buffer.
+     */
+    int usage() {
+        return (*head >= *tail) ? *head - *tail : arraySize - *tail + *head;
+    }
+
+    /**
+     * Provides the maximum number of elements that can be stored in the buffer.
+     * @return Size of the buffer.
+     */
+    indexType size() {
+        return arraySize - 1;
+    }
+
+private:
+    T* dataMemory;
+    indexType* head;
+    indexType* tail;
+    indexType arraySize;
 
 
-#endif
+    indexType calculateArraySize(const sizeType memoryLen) {
+        return memoryLen / sizeof(T);
+    }
+
+    void advanceIndex(indexType* index) {
+        *index =  ++(*index) % arraySize;
+    }
+
+    void stepBackIndex(indexType* index) {
+        *index = (*index == 0) ? arraySize - 1 : --(*index);
+    }
+
+    void randomAccessIndex(indexType* index) {
+        *index = (*tail + *index) % arraySize;
+    }
+};
+
+#endif //DATA_BANK_H
