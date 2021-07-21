@@ -1,11 +1,13 @@
 # esp32-data-bank
 
-ESP32 microcontroller allows to store data during sleep state in its RTC memory. 
-However only statically allocated primitive or c-struct objects are allowed.
+ESP32 microcontroller allows to store data during deep sleep state in a special
+memory region called RTC memory. However only statically allocated primitive or
+c-struct objects are allowed. Also this memory must be allocated early in the
+startup process. Before the `setup()` function begins.
 
-This implementation of cicular buffer allows to store any continous data 
-including c++ class objects when ESP32 is in sleep mode and its main memory is 
-powered off.
+This implementation of circular buffer uses preallocated continuous memory to
+store any data including c++ class objects when ESP32 is in sleep mode and its
+main memory is powered off.
 
 
 ## Usage
