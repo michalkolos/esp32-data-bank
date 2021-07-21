@@ -18,8 +18,8 @@ main memory is powered off.
 RTC_DATA_ATTR uint8_t bufferMemory[MEMORY_SIZE];
 ```
 
-Allocated memory does not need to be in the RTC_DATA space. However then all 
-storred data will be lost on wake-up.
+Allocated memory does not need to be in the RTC_DATA space. However then all
+stored data will be lost on wake-up.
 
 ### 2. Declaring DataBank object:
 
@@ -34,30 +34,60 @@ BufferMemory is a pointer to the beginning of the allocated space.
 ### 3. Initializing buffer:
 
 ``` C
-dataBank.init();
+void init();
 ```
 
-Clears the memory and sets internal indexes to the beginning. Can be called multiple times to reset the DataBank.
+Sets internal indexes to the beginning. Can be called multiple times to reset the DataBank.
 
-### 4. Operations:
+### 4. Operations - available methods:
 
-* Putting objects on the buffer:
+#### * Putting objects on the buffer:
 
 ``` C
-dataBank.push(obj);
+void push(const T newElement);
 ```
 
 This creates a copy of the object in the buffer memory. If the memory allocated for the bank is exceeded, the oldest stored object gets overwritten.
 
-* Getting objects from the buffer:
+#### * Getting objects from the buffer:
   
 ``` C
-dataBank.pop(&obj, true);
+T popLast();
 ```
 
-Returns the oldest stored element. Data from the buffer will be copied to the object under given address. Second parameter determines if the source data in the buffer gets deleted.
+Returns the oldest stored element. Object in the buffer gets deleted. If the buffer
+is empty it will keep returning the last available element.
 
-## TODO
+``` C
+T popRecent();
+```
 
-* Implement random access to the data.
-* Implement accessing the data without copying memory contents.
+Same as above, but returns the most recently added element to the buffer.
+
+
+``` C
+T& peakLast();
+```
+
+Retrieves the last element stored in the buffer. But does not remove it from the buffer.
+
+``` C
+T& get(indexType index);
+```
+
+Provides random  access to the buffer.
+
+#### * Getting information about the buffer:
+
+``` C
+int usage();
+```
+
+Provides the number of elements stored in the buffer.
+
+``` C
+int size();
+```
+
+Returns the maximum number of elements that can be stored in the buffer.
+
