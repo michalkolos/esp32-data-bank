@@ -68,7 +68,7 @@ public:
      */
     T popLast() {
         T result = *(dataMemory + *tail);
-        if(head != tail) {
+        if(*head != *tail) {
             advanceIndex(tail);
         }
         return result;
