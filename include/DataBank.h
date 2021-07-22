@@ -1,6 +1,6 @@
 /**
  * @file DataBank.h
- * @author Michal Kolosowski (you@domain.com)
+ * @author Michal Kolosowski (michalkoloso@gmail.com)
  * @brief Generic circular buffer implementation that stores data in a staticly 
  * allocated memory.
  * @version 0.1
